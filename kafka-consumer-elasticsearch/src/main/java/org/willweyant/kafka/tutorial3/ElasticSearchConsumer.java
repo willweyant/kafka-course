@@ -39,6 +39,7 @@ public class ElasticSearchConsumer {
         while (true) {
             final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
 
+            logger.info("Received {} records.", records.count());
             for (ConsumerRecord<String, String> record : records) {
                 // insert data into elasticsearch
 
@@ -61,10 +62,19 @@ public class ElasticSearchConsumer {
                 logger.info("id = {}", id);
 
                 try {
-                    Thread.sleep(1000); // introduce small delay
+                    Thread.sleep(10); // introduce small delay
                 } catch (InterruptedException e) {
                     logger.error("Error in thread sleep.", e);
                 }
+            }
+            logger.info("Committing offsets...");
+            consumer.commitSync();
+            logger.info("Offsets have been committed");
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                logger.error("Error in thread sleep.", e);
             }
         }
 
@@ -106,6 +116,8 @@ public class ElasticSearchConsumer {
         properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"); // earliest, latest, or none
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false"); // disable auto-commit of offsets
+        properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "10");
 
         // Create Consumer
         final KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(properties);
